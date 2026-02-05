@@ -12,9 +12,6 @@ export const metadata: Metadata = {
   title: "Saw Zwe Wai Yan | Full-Stack Developer",
   description:
     "Full-stack developer specializing in Next.js, React, and modern web applications. Based in Bangkok, Thailand.",
-  icons: {
-    icon: "/icon.svg",
-  },
 };
 
 export default function RootLayout({
