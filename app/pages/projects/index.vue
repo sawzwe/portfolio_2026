@@ -54,10 +54,17 @@
         :style="{ width: p.w + 'px', transform: `translateY(${p.off}px)`, color: '#111' }"
       >
         <div
-          class="flex items-center justify-center transition-transform duration-300 group-hover:scale-[1.02]"
+          class="flex items-center justify-center overflow-hidden transition-transform duration-300 group-hover:scale-[1.02]"
           :style="{ height: p.h + 'px', background: p.tint }"
         >
+          <img
+            v-if="p.heroImage"
+            :src="p.heroImage"
+            :alt="p.title"
+            class="w-full h-full object-cover"
+          />
           <span
+            v-else
             class="font-mono text-[11px] tracking-[0.06em]"
             style="color: #a3a39e"
             >{{ p.ph }}</span
@@ -90,24 +97,29 @@
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { projects, projectFilters } from "~/data/projects";
+import { projectFilters } from "~/data/projects";
 
 type FilterKey = (typeof projectFilters)[number]["key"];
 
 const filter = ref<FilterKey>("all");
+
+const { data: projectsData } = await useProjects();
+const projects = computed(() => projectsData.value ?? []);
 
 const filtersWithCount = computed(() =>
   projectFilters.map((f) => ({
     ...f,
     count:
       f.key === "all"
-        ? projects.length
-        : projects.filter((p) => p.group === f.key).length,
+        ? projects.value.length
+        : projects.value.filter((p) => p.group === f.key).length,
   }))
 );
 
 const shown = computed(() =>
-  projects.filter((p) => filter.value === "all" || p.group === filter.value)
+  projects.value.filter(
+    (p) => filter.value === "all" || p.group === filter.value
+  )
 );
 
 useHead({
