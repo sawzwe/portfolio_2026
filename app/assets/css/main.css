@@ -1,0 +1,95 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    margin: 0;
+    background: #fcfcfb;
+    color: #111;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a {
+    color: #111;
+    text-decoration: none;
+  }
+
+  a:hover {
+    color: #8a8a8a;
+  }
+
+  ::selection {
+    background: #111;
+    color: #fff;
+  }
+
+  *:focus-visible {
+    outline: 2px solid #111;
+    outline-offset: 3px;
+  }
+}
+
+/* ---- keyframes ported from the Claude design ---- */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(42px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes lineGrow {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* ---- Nuxt page transition (fade + slide) ---- */
+.page-enter-active,
+.page-leave-active {
+  transition: opacity 0.32s ease, transform 0.32s ease;
+}
+
+.page-enter-from {
+  opacity: 0;
+  transform: translateY(26px);
+}
+
+.page-leave-to {
+  opacity: 0;
+  transform: translateY(26px);
+}
+
+/* ---- Reduced motion ---- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
