@@ -1,56 +1,98 @@
-# Portfolio 2026
+# Portfolio Hero Section - Nuxt 3
 
-A minimal, production-ready portfolio site for a software developer and product manager. Built with Next.js and Tailwind CSS, optimized for [Vercel](https://vercel.com) deployment.
+A production-ready Hero section for a portfolio site built with Nuxt 3, Tailwind CSS, and modern animations.
 
-## Quick start
+## Features
 
-1. **Install dependencies**
+- **Modern Stack**: Nuxt 3, TypeScript, Tailwind CSS
+- **Smooth Animations**: SVG path drawing, staggered text animations
+- **Accessibility**: ARIA labels, keyboard navigation, reduced motion support
+- **Performance**: Intersection Observer, optimized animations
+- **Responsive**: Mobile-first design with responsive typography
 
-   ```bash
-   npm install
-   ```
+## Tech Stack
 
-2. **Run locally**
+- **Framework**: Nuxt 3
+- **Styling**: Tailwind CSS
+- **Animations**: CSS animations with reduced motion support
+- **TypeScript**: Full type safety
+- **Data**: Local JSON file (`/data/site.json`)
 
-   ```bash
-   npm run dev
-   ```
+## Project Structure
 
-   Open [http://localhost:3000](http://localhost:3000).
+```
+├── components/
+│   ├── Hero.vue          # Main hero section component
+│   └── Logo.vue          # SVG logo with path drawing animation
+├── pages/
+│   ├── index.vue         # Home page (renders Hero)
+│   └── contact.vue       # Contact page placeholder
+├── data/
+│   └── site.json         # Portfolio content data
+├── types/
+│   └── site.ts           # TypeScript interfaces
+└── assets/css/
+    └── main.css          # Global styles and animations
+```
 
-3. **Configure your content**
+## Setup
 
-   - **Links and copy:** Edit `lib/site-config.ts` — add your name, intro headline and tagline, LinkedIn URL, resume URL, contact email, and version.
-   - **Projects:** Edit `lib/projects.ts` — replace the placeholder projects with your own (title, role, period, optional `href`, and `gradient`).
+Install dependencies:
 
-4. **Deploy to Vercel**
+```bash
+npm install
+```
 
-   - Push this repo to GitHub (or connect your Git provider in Vercel).
-   - In [Vercel](https://vercel.com), click **Add New Project** and import this repository.
-   - Vercel will detect Next.js; leave build settings as default and deploy.
+## Development
 
-   Or use the CLI:
+Start the development server:
 
-   ```bash
-   npx vercel
-   ```
+```bash
+npm run dev
+```
 
-## Project structure
+Visit `http://localhost:3000` to see the Hero section.
 
-- `app/` — Next.js App Router: `layout.tsx`, `page.tsx`, `globals.css`
-- `lib/site-config.ts` — Site-wide copy and links (name, intro, LinkedIn, resume, version, contact)
-- `lib/projects.ts` — Project list for the showcase grid
-- `tailwind.config.ts` — Theme (colors, animations); palette is limited to 3 colors + gradients
+## Customization
 
-## Design
+Edit `/data/site.json` to customize the portfolio content:
 
-- **Colors:** Dark background (`#0f0f0f`), light text (`#f5f5f5`), muted text (`#a3a3a3`), and a single accent with gradients (indigo family). No more than three base colors; gradients are accent-based.
-- **Layout:** Single-page: header (name + LinkedIn/Resume) → intro → project grid → footer (contact CTA + version).
-- **Inspiration:** Layout and typography are inspired by [rocky.framer.website](https://rocky.framer.website/).
+```json
+{
+  "name": "Your Name",
+  "role": "Your Role",
+  "taglines": ["Your taglines"],
+  "socials": { "github": "...", "linkedin": "..." },
+  "location": "Your Location",
+  "availability": "Your availability status"
+}
+```
 
-## Scripts
+## Performance Features
 
-- `npm run dev` — Development server
-- `npm run build` — Production build
-- `npm run start` — Run production build locally
-- `npm run lint` — Run ESLint
+- **Intersection Observer**: Animations only trigger when in view
+- **Reduced Motion**: Respects `prefers-reduced-motion` setting
+- **Optimized Animations**: Only `transform` and `opacity` properties
+- **Fast Page Transitions**: Under 450ms with simple fade/slide
+
+## Accessibility
+
+- Semantic HTML with proper ARIA labels
+- Keyboard navigation support
+- Focus indicators for interactive elements
+- Screen reader friendly content structure
+- Reduced motion support for users with vestibular disorders
+
+## Build
+
+Build for production:
+
+```bash
+npm run build
+```
+
+Preview production build:
+
+```bash
+npm run preview
+```
