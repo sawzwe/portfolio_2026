@@ -5,10 +5,25 @@ export default defineNuxtConfig({
   nitro: {
     preset: "vercel",
   },
-  modules: ["@nuxtjs/tailwindcss"],
+  modules: ["@nuxtjs/tailwindcss", "@nuxtjs/supabase"],
   css: ["~/assets/css/main.css"],
   tailwindcss: {
     cssPath: "~/assets/css/main.css",
+  },
+  supabase: {
+    // Only the admin area requires auth. The public portfolio stays open.
+    redirectOptions: {
+      login: "/admin/login",
+      callback: "/admin/confirm",
+      include: ["/admin(/*)?"],
+      exclude: ["/admin/login"],
+      cookieRedirect: false,
+    },
+  },
+  runtimeConfig: {
+    public: {
+      siteUrl: process.env.NUXT_PUBLIC_SITE_URL || "http://localhost:3000",
+    },
   },
   app: {
     pageTransition: { name: "page", mode: "out-in" },

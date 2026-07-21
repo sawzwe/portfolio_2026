@@ -96,18 +96,21 @@
 </template>
 
 <script setup lang="ts">
-import siteData from "~/data/site.json";
+import fallbackSite from "~/data/site.json";
 import type { SiteData } from "~/types/site";
 
-const site = siteData as SiteData;
+const { data: siteData } = await useSite();
+const site = computed<SiteData>(
+  () => siteData.value ?? (fallbackSite as SiteData)
+);
 
-useHead({
-  title: `${site.name} — ${site.role}`,
+useHead(() => ({
+  title: `${site.value.name} — ${site.value.role}`,
   meta: [
     {
       name: "description",
-      content: `${site.name}, ${site.role} based in ${site.location}. ${site.intro}`,
+      content: `${site.value.name}, ${site.value.role} based in ${site.value.location}. ${site.value.intro}`,
     },
   ],
-});
+}));
 </script>
