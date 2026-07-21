@@ -1,6 +1,10 @@
 // nuxt.config.ts
 export default defineNuxtConfig({
   devtools: { enabled: true },
+  // Build SSR output for Vercel serverless functions.
+  nitro: {
+    preset: "vercel",
+  },
   modules: ["@nuxtjs/tailwindcss"],
   css: ["~/assets/css/main.css"],
   tailwindcss: {
