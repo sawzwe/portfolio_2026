@@ -2,7 +2,7 @@
 <template>
   <div
     class="relative min-h-screen flex flex-col box-border overflow-hidden"
-    style="padding: 96px 44px 40px"
+    style="padding: 96px 44px 64px"
   >
     <!-- Heading -->
     <div style="animation: rise 0.7s ease both">

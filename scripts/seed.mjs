@@ -1,11 +1,11 @@
 // Seed Supabase with the initial portfolio content.
 //
 // Usage:
-//   1. Copy .env.example to .env and fill SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY
+//   1. Copy .env.example to .env and fill SUPABASE_URL + SUPABASE_SECRET_KEY
 //   2. Run the SQL migration (supabase/migrations/0001_init.sql) first
 //   3. node scripts/seed.mjs
 //
-// The service_role key bypasses RLS — keep it secret, never ship to the client.
+// The secret key bypasses RLS — keep it secret, never ship to the client.
 
 import { createClient } from "@supabase/supabase-js";
 import { readFileSync } from "node:fs";
@@ -26,11 +26,13 @@ try {
 }
 
 const URL = process.env.SUPABASE_URL;
-const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// Accept the new secret key or the legacy service_role key.
+const KEY =
+  process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!URL || !KEY) {
   console.error(
-    "Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY. Fill them in .env"
+    "Missing SUPABASE_URL or SUPABASE_SECRET_KEY (secret key). Fill them in .env"
   );
   process.exit(1);
 }

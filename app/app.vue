@@ -5,6 +5,7 @@
       <TheLoader />
       <SiteNav />
       <BackButton />
+      <SiteFooter />
     </template>
     <NuxtPage />
   </div>
