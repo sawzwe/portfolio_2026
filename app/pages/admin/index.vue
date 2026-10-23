@@ -142,6 +142,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import type { Project, TimelineEntry, SiteData } from "~/types/site";
+import { rowToSite, type SiteRow } from "~/types/database";
 
 // This page is protected by @nuxtjs/supabase redirect middleware.
 definePageMeta({ layout: false });
@@ -180,16 +181,7 @@ async function loadAll() {
       .eq("id", 1)
       .maybeSingle();
     site.value = data
-      ? {
-          name: data.name,
-          role: data.role,
-          location: data.location,
-          availability: data.availability,
-          education: data.education,
-          intro: data.intro,
-          focus: data.focus,
-          socials: { email: data.email, linkedin: data.linkedin, cv: data.cv },
-        }
+      ? rowToSite(data as unknown as SiteRow)
       : {
           name: "",
           role: "",

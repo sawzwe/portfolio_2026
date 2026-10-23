@@ -8,22 +8,35 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "seed": "node scripts/seed.mjs",
-    "postinstall": "nuxt prepare"
+    "postinstall": "nuxt prepare",
+    "shot": "node scripts/screenshot.ts",
+    "typecheck": "nuxt typecheck",
+    "fallback": "node scripts/screenshot.ts hero-fallback --frame --width 1600 --height 900 --step 0 --url http://localhost:3000/ --webp app/assets/sawmill/hero-fallback.webp"
   },
   "dependencies": {
+    "@fontsource/inter": "^5.3.0",
     "@nuxtjs/supabase": "^2.0.9",
     "@nuxtjs/tailwindcss": "^6.14.0",
     "@oku-ui/motion": "^0.4.3",
+    "@tresjs/cientos": "^5.10.0",
+    "@tresjs/core": "^5.10.0",
+    "@tresjs/nuxt": "^5.8.0",
+    "@tresjs/post-processing": "^3.11.0",
     "@types/node": "^24.5.2",
+    "maath": "^0.10.8",
     "motion": "^12.23.18",
     "nuxt": "^4.1.2",
     "sass": "^1.93.1",
     "sass-loader": "^16.0.5",
+    "three": "^0.186.1",
+    "troika-three-text": "^0.52.5",
     "typescript": "^5.9.2",
     "vue": "^3.5.21",
     "vue-router": "^4.5.1"
   },
   "devDependencies": {
+    "@types/three": "^0.186.0",
+    "playwright": "^1.64.1",
     "vue-tsc": "^3.0.8"
   }
 }

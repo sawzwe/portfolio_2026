@@ -170,6 +170,7 @@ import {
   onMounted,
   onBeforeUnmount,
   nextTick,
+  type ComponentPublicInstance,
 } from "vue";
 import fallbackSite from "~/data/site.json";
 import type { SiteData } from "~/types/site";
@@ -186,8 +187,8 @@ const lineVisible = ref(false);
 const entryVisible = reactive<boolean[]>([]);
 const entryEls: (Element | null)[] = [];
 
-function setEntryRef(el: Element | null, i: number) {
-  entryEls[i] = el;
+function setEntryRef(el: Element | ComponentPublicInstance | null, i: number) {
+  entryEls[i] = el instanceof Element ? el : null;
 }
 
 let observer: IntersectionObserver | null = null;
@@ -223,8 +224,8 @@ onMounted(async () => {
 
 onBeforeUnmount(() => observer?.disconnect());
 
-useHead({
+useHead(() => ({
   title: "About — Saw Zwe Wai Yan",
-  meta: [{ name: "description", content: site.intro }],
-});
+  meta: [{ name: "description", content: site.value.intro }],
+}));
 </script>

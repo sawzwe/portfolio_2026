@@ -1,11 +1,26 @@
 // nuxt.config.ts
+import { readFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
+import { defineEventHandler, setHeader } from "h3";
+
 export default defineNuxtConfig({
   devtools: { enabled: true },
   // Build SSR output for Vercel serverless functions.
   nitro: {
     preset: "vercel",
   },
-  modules: ["@nuxtjs/tailwindcss", "@nuxtjs/supabase"],
+  modules: ["@nuxtjs/tailwindcss", "@nuxtjs/supabase", "@tresjs/nuxt"],
+  // Dev only: serves the sawmill reference image for the "O" overlay
+  // (SawmillDevOverlay.vue). Not part of the build, so references/ never ships.
+  devServerHandlers: [
+    {
+      route: "/__sawmill/master.png",
+      handler: defineEventHandler(async (event) => {
+        setHeader(event, "content-type", "image/png");
+        return readFile(fileURLToPath(new URL("./references/master.png", import.meta.url)));
+      }),
+    },
+  ],
   css: ["~/assets/css/main.css"],
   tailwindcss: {
     cssPath: "~/assets/css/main.css",
