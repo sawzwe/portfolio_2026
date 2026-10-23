@@ -1,7 +1,7 @@
 <!-- components/TimelineList.vue -->
 <!--
-  The career timeline as plain semantic HTML, from the same source as the
-  sawmill planks (sawmill/timeline.ts). Server-rendered, so it is crawlable
+  The career timeline as plain semantic HTML, from the same CMS data as the
+  sawmill planks and the About page. Newest first, like the sawmill. Server-rendered, so it is crawlable
   and read by screen readers (the canvas is aria-hidden). Visible on mobile;
   visually hidden but still accessible from 768px up, where the sawmill shows
   the same content.
@@ -10,17 +10,21 @@
   <section class="timeline-list" aria-labelledby="timeline-list-heading">
     <h2 id="timeline-list-heading" class="timeline-list__heading">Timeline</h2>
     <ol class="timeline-list__items">
-      <li v-for="entry in TIMELINE" :key="entry.id" class="timeline-list__item">
-        <p class="timeline-list__meta">{{ entry.year }} · {{ entry.org }}</p>
+      <li v-for="(entry, i) in newestFirst" :key="entry.id ?? i" class="timeline-list__item">
+        <p class="timeline-list__meta">{{ [entry.year, entry.org].filter(Boolean).join(" · ") }}</p>
         <h3 class="timeline-list__title">{{ entry.title }}</h3>
-        <p class="timeline-list__detail">{{ entry.detail }}</p>
+        <p class="timeline-list__detail">{{ entry.text }}</p>
       </li>
     </ol>
   </section>
 </template>
 
 <script setup lang="ts">
-import { TIMELINE } from "~/sawmill/timeline";
+import type { TimelineEntry } from "~/types/site";
+
+// Stored oldest first (as on the About page); listed newest first.
+const props = defineProps<{ timeline: readonly TimelineEntry[] }>();
+const newestFirst = computed(() => [...props.timeline].reverse());
 </script>
 
 <style scoped>

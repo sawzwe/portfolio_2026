@@ -37,7 +37,7 @@
 import RBox from "./RBox.vue";
 import PlankLabel from "./PlankLabel.vue";
 import { PLANK, PLANK_SIZE } from "~/sawmill/scene-config";
-import type { TimelineEntry } from "~/sawmill/timeline";
+import type { TimelineEntry } from "~/types/site";
 
 withDefaults(
   defineProps<{

@@ -18,6 +18,10 @@
         <span>Title</span>
         <input v-model="local.title" type="text" />
       </label>
+      <label class="admin-field" style="grid-column: 1 / -1">
+        <span>Organisation</span>
+        <input v-model="local.org" type="text" placeholder="Company, school or Project" />
+      </label>
       <label class="admin-field">
         <span>Dot color</span>
         <input v-model="local.dot" type="text" />
@@ -27,9 +31,14 @@
         <input v-model.number="local.sortOrder" type="number" />
       </label>
       <label class="admin-field" style="grid-column: 1 / -1">
-        <span>Text</span>
+        <span>Detail</span>
         <textarea v-model="local.text" rows="2"></textarea>
       </label>
+      <p class="admin-hint" style="grid-column: 1 / -1">
+        Year is printed on the sawmill plank, so keep it short ("2024", "now",
+        "2020–24"). Sort order is oldest first; the newest entry is the plank
+        under the saw.
+      </p>
     </div>
     <div class="flex justify-end items-center" style="gap: 16px; margin-top: 14px">
       <button
@@ -81,6 +90,12 @@ watch(
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+.admin-hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #a8a8a8;
 }
 .admin-field span {
   font-size: 11px;

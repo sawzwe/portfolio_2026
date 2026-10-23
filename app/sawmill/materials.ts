@@ -4,6 +4,7 @@
 // by every mesh. Components ask for a material by name and never make their own.
 
 import {
+  CanvasTexture,
   MeshBasicMaterial,
   MeshStandardMaterial,
   RepeatWrapping,
@@ -11,7 +12,7 @@ import {
   TextureLoader,
   type Texture,
 } from "three";
-import { COLORS, MATERIAL, type ColorName } from "./scene-config";
+import { COLORS, MATERIAL, ROBOT, type ColorName } from "./scene-config";
 
 const cache = new Map<ColorName, MeshStandardMaterial>();
 let woodGrain: Texture | null = null;
@@ -57,6 +58,57 @@ export function hitProxyMaterial() {
   return hitProxy;
 }
 
+/**
+ * The robots' hover glow: a soft radial light pool on the floor and a flat
+ * thruster plate under the torso. Unlit (MeshBasicMaterial) on purpose, the
+ * only non-matte surfaces in the scene; shared by all robots.
+ */
+let glowFloor: MeshBasicMaterial | null = null;
+let glowPlate: MeshBasicMaterial | null = null;
+let glowTexture: CanvasTexture | null = null;
+export function glowMaterials() {
+  if (!glowFloor || !glowPlate) {
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = 128;
+    const ctx = canvas.getContext("2d")!;
+    // alphaMap reads brightness (green channel), so draw white-to-black on
+    // an opaque canvas, not white with fading alpha.
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, 128, 128);
+    const g = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+    g.addColorStop(0, "#fff");
+    g.addColorStop(0.4, "#777");
+    g.addColorStop(1, "#000");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 128, 128);
+    glowTexture = new CanvasTexture(canvas);
+    glowFloor = new MeshBasicMaterial({
+      color: ROBOT.glow.color,
+      alphaMap: glowTexture,
+      transparent: true,
+      opacity: ROBOT.glow.floorOpacity,
+      depthWrite: false,
+      fog: false,
+    });
+    glowPlate = new MeshBasicMaterial({ color: ROBOT.glow.color, fog: false });
+  }
+  return { floor: glowFloor, plate: glowPlate };
+}
+
+/** Logo textures for the robot badges, loaded once per URL. */
+const logoCache = new Map<string, MeshBasicMaterial>();
+export function logoMaterial(url: string) {
+  let m = logoCache.get(url);
+  if (!m) {
+    const texture = new TextureLoader().load(url);
+    texture.colorSpace = SRGBColorSpace;
+    texture.anisotropy = 4;
+    m = new MeshBasicMaterial({ map: texture, transparent: true, depthWrite: false });
+    logoCache.set(url, m);
+  }
+  return m;
+}
+
 export function disposeSceneMaterials() {
   for (const m of cache.values()) m.dispose();
   cache.clear();
@@ -64,4 +116,14 @@ export function disposeSceneMaterials() {
   woodGrain = null;
   hitProxy?.dispose();
   hitProxy = null;
+  glowFloor?.dispose();
+  glowPlate?.dispose();
+  glowTexture?.dispose();
+  glowFloor = glowPlate = null;
+  glowTexture = null;
+  for (const m of logoCache.values()) {
+    m.map?.dispose();
+    m.dispose();
+  }
+  logoCache.clear();
 }

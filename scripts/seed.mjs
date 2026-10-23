@@ -3,7 +3,11 @@
 // Usage:
 //   1. Copy .env.example to .env and fill SUPABASE_URL + SUPABASE_SECRET_KEY
 //   2. Run the SQL migration (supabase/migrations/0001_init.sql) first
-//   3. node scripts/seed.mjs
+//   3. node scripts/seed.mjs                  (site, projects and timeline)
+//      node scripts/seed.mjs --only timeline  (just one part; comma-separate
+//                                              several: --only site,timeline)
+//
+// Each part REPLACES what is in the CMS for it with the files in app/data/.
 //
 // The secret key bypasses RLS — keep it secret, never ship to the client.
 
@@ -32,7 +36,7 @@ const KEY =
 
 if (!URL || !KEY) {
   console.error(
-    "Missing SUPABASE_URL or SUPABASE_SECRET_KEY (secret key). Fill them in .env"
+    "Missing SUPABASE_URL or SUPABASE_SECRET_KEY (secret key). Fill them in .env",
   );
   process.exit(1);
 }
@@ -49,7 +53,7 @@ const supabase = createClient(URL, KEY, {
 // Simplest robust approach: import the JSON site file + parse the TS data.
 
 const site = JSON.parse(
-  readFileSync(resolve(root, "app/data/site.json"), "utf8")
+  readFileSync(resolve(root, "app/data/site.json"), "utf8"),
 );
 
 // Use jiti (bundled with Nuxt) to import the TypeScript data files directly.
@@ -58,9 +62,26 @@ const jiti = createJiti(import.meta.url);
 const { projects } = await jiti.import(resolve(root, "app/data/projects.ts"));
 const { timeline } = await jiti.import(resolve(root, "app/data/timeline.ts"));
 
+// --only <parts>: seed only these parts (default: all).
+const onlyIndex = process.argv.indexOf("--only");
+const only =
+  onlyIndex > -1
+    ? new Set((process.argv[onlyIndex + 1] ?? "").split(","))
+    : null;
+const wants = (part) => !only || only.has(part);
+if (
+  only &&
+  ![...only].every((p) => ["site", "projects", "timeline"].includes(p))
+) {
+  console.error(
+    '--only takes site, projects and/or timeline, e.g. "--only timeline"',
+  );
+  process.exit(1);
+}
+
 async function run() {
-  console.log("→ Seeding site…");
-  {
+  if (wants("site")) {
+    console.log("→ Seeding site…");
     const { error } = await supabase.from("site").upsert({
       id: 1,
       name: site.name,
@@ -77,8 +98,8 @@ async function run() {
     if (error) throw error;
   }
 
-  console.log(`→ Seeding ${projects.length} projects…`);
-  {
+  if (wants("projects")) {
+    console.log(`→ Seeding ${projects.length} projects…`);
     const rows = projects.map((p, i) => ({
       id: p.id,
       title: p.title,
@@ -102,13 +123,14 @@ async function run() {
     if (error) throw error;
   }
 
-  console.log(`→ Seeding ${timeline.length} timeline entries…`);
-  {
+  if (wants("timeline")) {
+    console.log(`→ Seeding ${timeline.length} timeline entries…`);
     // Clear then insert to keep sort order deterministic.
     await supabase.from("timeline").delete().neq("year", "___never___");
     const rows = timeline.map((t, i) => ({
       year: t.year,
       title: t.title,
+      org: t.org ?? "",
       text: t.text,
       dot: t.dot,
       sort_order: i,

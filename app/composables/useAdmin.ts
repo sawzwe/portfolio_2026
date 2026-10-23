@@ -45,6 +45,7 @@ export function useAdmin() {
     const row: Record<string, unknown> = {
       year: t.year,
       title: t.title,
+      org: t.org,
       text: t.text,
       dot: t.dot,
       sort_order: t.sortOrder ?? 0,

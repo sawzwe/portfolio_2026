@@ -13,7 +13,7 @@
 
 <script setup lang="ts">
 import { easing } from "maath";
-import { MOTION, STEP_COUNT } from "~/sawmill/scene-config";
+import { MOTION } from "~/sawmill/scene-config";
 import { MOTION_STATE, SAWMILL_UI } from "~/sawmill/motion";
 
 const state = inject(MOTION_STATE)!;
@@ -21,11 +21,11 @@ const ui = inject(SAWMILL_UI)!;
 const { onBeforeRender, onRender, start, stop } = useLoop();
 
 onBeforeRender(({ delta }) => {
-  if (state.reduced) state.progress = STEP_COUNT;
+  if (state.reduced) state.progress = state.steps;
   else easing.damp(state, "progress", state.target, MOTION.scrollSmoothTime, delta);
   // Caption follows the step being cut; written only when it changes so the
   // reactive UI is not touched every frame.
-  const current = Math.min(Math.floor(state.progress + 1e-3), STEP_COUNT);
+  const current = Math.min(Math.floor(state.progress + 1e-3), state.steps);
   if (current !== ui.current) ui.current = current;
 });
 

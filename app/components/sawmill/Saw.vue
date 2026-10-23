@@ -125,7 +125,7 @@ const blade = shallowRef<Object3D>();
 const TAU = Math.PI * 2;
 
 useLoop().onBeforeRender(({ delta }) => {
-  const { lower, slide } = sawHead(state.progress);
+  const { lower, slide } = sawHead(state.progress, state.steps);
   const x = -B.traverse + 2 * B.traverse * slide;
   const y = B.centerY + MOTION.blade.raise * (1 - lower);
   if (head.value) head.value.position.set(x, y, B.offsetZ);

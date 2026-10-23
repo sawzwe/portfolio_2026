@@ -245,6 +245,7 @@ function newTimeline() {
   timeline.value.push({
     year: new Date().getFullYear().toString(),
     title: "",
+    org: "",
     text: "",
     dot: "#111",
     sortOrder: timeline.value.length,

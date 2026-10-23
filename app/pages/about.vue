@@ -106,7 +106,7 @@
         ></div>
         <div
           v-for="(t, i) in timeline"
-          :key="t.year"
+          :key="t.id ?? `${t.year}-${t.title}`"
           :ref="(el) => setEntryRef(el, i)"
           class="relative"
           style="margin-bottom: 88px"
@@ -132,7 +132,7 @@
             class="text-[13px] font-mono tracking-[0.1em]"
             style="color: #a8a8a8"
           >
-            {{ t.year }}
+            {{ t.year }}<template v-if="t.org"> · {{ t.org }}</template>
           </div>
           <div
             class="text-[26px] font-bold"

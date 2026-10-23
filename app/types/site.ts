@@ -24,10 +24,19 @@ export interface Project {
   sortOrder?: number;
 }
 
+/**
+ * One career timeline entry. The single source for the About page, the
+ * sawmill hero planks and the home timeline list (CMS table `timeline`,
+ * offline fallback app/data/timeline.ts).
+ */
 export interface TimelineEntry {
   id?: string;
+  /** Label printed on the plank: "2024", "now", "2020–24". */
   year: string;
   title: string;
+  /** Company, school or "Project". */
+  org: string;
+  /** One-line detail. */
   text: string;
   /** dot fill colour */
   dot: string;
