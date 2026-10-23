@@ -97,11 +97,17 @@
 
       <!-- Hero shot -->
       <div
-        class="flex items-center justify-center"
+        class="flex items-center justify-center overflow-hidden"
         style="margin-top: 72px; height: 460px"
         :style="{ background: proj.tint }"
       >
-        <span class="font-mono text-[11px]" style="color: #a3a39e"
+        <img
+          v-if="proj.heroImage"
+          :src="proj.heroImage"
+          :alt="`${proj.title} — hero`"
+          class="w-full h-full object-cover"
+        />
+        <span v-else class="font-mono text-[11px]" style="color: #a3a39e"
           >{{ proj.ph }} — hero shot / illustration</span
         >
       </div>
@@ -112,19 +118,19 @@
         style="grid-template-columns: 1fr 1fr; gap: 32px; margin-top: 32px"
       >
         <div
-          class="flex items-center justify-center"
+          v-for="i in 2"
+          :key="i"
+          class="flex items-center justify-center overflow-hidden"
           style="height: 320px; background: #f0f0ec"
         >
-          <span class="font-mono text-[11px]" style="color: #a3a39e"
-            >detail shot 1</span
-          >
-        </div>
-        <div
-          class="flex items-center justify-center"
-          style="height: 320px; background: #f0f0ec"
-        >
-          <span class="font-mono text-[11px]" style="color: #a3a39e"
-            >detail shot 2</span
+          <img
+            v-if="proj.detailImages && proj.detailImages[i - 1]"
+            :src="proj.detailImages[i - 1]"
+            :alt="`${proj.title} — detail ${i}`"
+            class="w-full h-full object-cover"
+          />
+          <span v-else class="font-mono text-[11px]" style="color: #a3a39e"
+            >detail shot {{ i }}</span
           >
         </div>
       </div>
@@ -144,6 +150,7 @@
           >← All projects</NuxtLink
         >
         <NuxtLink
+          v-if="next"
           :to="`/projects/${next.id}`"
           class="text-[13px] tracking-[0.14em] uppercase font-bold"
           >Next: {{ next.title }} →</NuxtLink
@@ -154,15 +161,19 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
 import { useRoute, createError } from "#imports";
-import { projects } from "~/data/projects";
 import type { Project } from "~/types/site";
 
 const route = useRoute();
+const id = route.params.id as string;
 
-const proj = projects.find((p) => p.id === route.params.id);
+const { data: allData } = await useProjects();
+const all = computed(() => allData.value ?? []);
 
-if (!proj) {
+const proj = computed(() => all.value.find((p) => p.id === id));
+
+if (import.meta.server && all.value.length && !proj.value) {
   throw createError({
     statusCode: 404,
     statusMessage: "Project not found",
@@ -170,11 +181,14 @@ if (!proj) {
   });
 }
 
-const idx = projects.findIndex((p) => p.id === proj.id);
-const next: Project = projects[(idx + 1) % projects.length]!;
-
-useHead({
-  title: `${proj.title} — Saw Zwe Wai Yan`,
-  meta: [{ name: "description", content: proj.desc }],
+const next = computed<Project | undefined>(() => {
+  if (!proj.value || !all.value.length) return undefined;
+  const idx = all.value.findIndex((p) => p.id === proj.value!.id);
+  return all.value[(idx + 1) % all.value.length];
 });
+
+useHead(() => ({
+  title: `${proj.value?.title ?? "Project"} — Saw Zwe Wai Yan`,
+  meta: [{ name: "description", content: proj.value?.desc ?? "" }],
+}));
 </script>

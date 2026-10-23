@@ -163,19 +163,32 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onBeforeUnmount, nextTick } from "vue";
-import siteData from "~/data/site.json";
-import { timeline } from "~/data/timeline";
+import {
+  ref,
+  reactive,
+  computed,
+  onMounted,
+  onBeforeUnmount,
+  nextTick,
+  type ComponentPublicInstance,
+} from "vue";
+import fallbackSite from "~/data/site.json";
 import type { SiteData } from "~/types/site";
 
-const site = siteData as SiteData;
+const { data: siteData } = await useSite();
+const site = computed<SiteData>(
+  () => siteData.value ?? (fallbackSite as SiteData)
+);
+
+const { data: timelineData } = await useTimeline();
+const timeline = computed(() => timelineData.value ?? []);
 
 const lineVisible = ref(false);
-const entryVisible = reactive<boolean[]>(timeline.map(() => false));
+const entryVisible = reactive<boolean[]>([]);
 const entryEls: (Element | null)[] = [];
 
-function setEntryRef(el: Element | null, i: number) {
-  entryEls[i] = el;
+function setEntryRef(el: Element | ComponentPublicInstance | null, i: number) {
+  entryEls[i] = el instanceof Element ? el : null;
 }
 
 let observer: IntersectionObserver | null = null;
@@ -184,9 +197,12 @@ onMounted(async () => {
   await nextTick();
   lineVisible.value = true;
 
+  // Size the visibility array to the loaded timeline.
+  for (let i = 0; i < timeline.value.length; i++) entryVisible[i] = false;
+
   const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   if (reduce) {
-    entryVisible.forEach((_, i) => (entryVisible[i] = true));
+    for (let i = 0; i < timeline.value.length; i++) entryVisible[i] = true;
     return;
   }
 
@@ -208,8 +224,8 @@ onMounted(async () => {
 
 onBeforeUnmount(() => observer?.disconnect());
 
-useHead({
+useHead(() => ({
   title: "About — Saw Zwe Wai Yan",
-  meta: [{ name: "description", content: site.intro }],
-});
+  meta: [{ name: "description", content: site.value.intro }],
+}));
 </script>

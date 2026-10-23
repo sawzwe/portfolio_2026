@@ -56,18 +56,22 @@
 </template>
 
 <script setup lang="ts">
-import siteData from "~/data/site.json";
+import { computed } from "vue";
+import fallbackSite from "~/data/site.json";
 import type { SiteData } from "~/types/site";
 
-const site = siteData as SiteData;
+const { data: siteData } = await useSite();
+const site = computed<SiteData>(
+  () => siteData.value ?? (fallbackSite as SiteData)
+);
 
-useHead({
+useHead(() => ({
   title: "Contact — Saw Zwe Wai Yan",
   meta: [
     {
       name: "description",
-      content: `Get in touch with ${site.name}. ${site.location} · ${site.availability}.`,
+      content: `Get in touch with ${site.value.name}. ${site.value.location} · ${site.value.availability}.`,
     },
   ],
-});
+}));
 </script>

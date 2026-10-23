@@ -1,5 +1,6 @@
 export type ProjectGroup = "dev" | "data" | "seo";
 
+/** Shape the UI renders against. */
 export interface Project {
   id: string;
   title: string;
@@ -18,14 +19,19 @@ export interface Project {
   off: number;
   desc: string;
   points: string[];
+  heroImage?: string | null;
+  detailImages?: string[];
+  sortOrder?: number;
 }
 
 export interface TimelineEntry {
+  id?: string;
   year: string;
   title: string;
   text: string;
   /** dot fill colour */
   dot: string;
+  sortOrder?: number;
 }
 
 export interface SiteData {
