@@ -1,8 +1,8 @@
 <!-- pages/index.vue -->
 <template>
   <div
-    class="relative min-h-screen flex flex-col box-border"
-    style="padding: 0 44px 64px; overflow-x: clip"
+    class="home-page relative min-h-screen flex flex-col box-border"
+    style="overflow-x: clip"
   >
     <!--
       Hero: sawmill scene. The section is one viewport tall per timeline
@@ -21,7 +21,7 @@
       class="sawmill-scroll"
       :class="{ 'is-static': !webgl }"
       data-sawmill-scroll
-      :style="{ '--sawmill-steps': STEP_COUNT }"
+      :style="{ '--sawmill-steps': timeline.length }"
     >
       <div class="sawmill-sticky">
         <div class="sawmill-visual" aria-hidden="true">
@@ -36,16 +36,31 @@
               class="sawmill-fallback"
             />
           </Transition>
-          <noscript>
-            <img :src="fallbackUrl" alt="" width="1600" height="900" class="sawmill-fallback" />
-          </noscript>
+          <!-- Without JavaScript: revealed by the <noscript> style in useHead.
+               Lazy + display:none, so browsers with JS never download it. -->
+          <img
+            :src="fallbackUrl"
+            alt=""
+            width="1600"
+            height="900"
+            loading="lazy"
+            class="sawmill-fallback sawmill-nojs"
+          />
           <ClientOnly>
-            <LazySawmillCanvas v-if="webgl" class="sawmill-live" @ready="scene = 'ready'" />
+            <LazySawmillCanvas
+              v-if="webgl && timeline.length"
+              :timeline="timeline"
+              class="sawmill-live"
+              @ready="scene = 'ready'"
+            />
           </ClientOnly>
         </div>
         <Transition name="sawmill-fade">
           <SawmillLoader v-if="scene === 'loading'" />
         </Transition>
+        <!-- Desktop: the Base / Focus / Index row sits along the bottom of the
+             sticky hero, so the page ends when the last plank lands. -->
+        <HeroMeta :site="site" class="hero-meta-overlay" />
         <div class="hero-heading">
           <div style="animation: rise 0.7s ease both">
             <div
@@ -67,61 +82,15 @@
       </div>
     </section>
 
-    <TimelineList />
+    <TimelineList :timeline="timeline" />
 
-    <!-- Meta grid -->
-    <div
-      class="grid gap-8 pt-6"
-      style="
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        animation: rise 0.7s ease 0.24s both;
-      "
-    >
-      <div style="border-top: 1px solid #d9d9d5; padding-top: 14px">
-        <div
-          class="text-[11px] tracking-[0.18em] text-grey-700 uppercase mb-2"
-        >
-          Base
-        </div>
-        <div
-          class="text-[13px] font-bold tracking-[0.08em] uppercase"
-        >
-          {{ site.location }}
-        </div>
-      </div>
-      <div style="border-top: 1px solid #d9d9d5; padding-top: 14px">
-        <div
-          class="text-[11px] tracking-[0.18em] text-grey-700 uppercase mb-2"
-        >
-          Focus
-        </div>
-        <div
-          class="text-[13px] font-bold tracking-[0.08em] uppercase"
-        >
-          {{ site.focus }}
-        </div>
-      </div>
-      <div style="border-top: 1px solid #d9d9d5; padding-top: 14px">
-        <div
-          class="text-[11px] tracking-[0.18em] text-grey-700 uppercase mb-2"
-        >
-          Index
-        </div>
-        <div
-          class="text-[13px] font-bold tracking-[0.08em] uppercase"
-        >
-          <NuxtLink to="/projects" class="tracking-[0.08em]"
-            >Portfolio 2026 →</NuxtLink
-          >
-        </div>
-      </div>
-    </div>
+    <!-- Phones: the row follows the timeline list (desktop has it in the hero). -->
+    <HeroMeta :site="site" class="hero-meta-below" />
   </div>
 </template>
 
 <script setup lang="ts">
 import fallbackSite from "~/data/site.json";
-import { STEP_COUNT } from "~/sawmill/scene-config";
 // Hashed by Vite, so a regenerated still never shows from a stale cache.
 import fallbackUrl from "~/assets/sawmill/hero-fallback.webp";
 
@@ -148,9 +117,21 @@ onMounted(() => {
   }, SCENE_TIMEOUT_MS);
 });
 onBeforeUnmount(() => clearTimeout(sceneTimer));
-import type { SiteData } from "~/types/site";
+
+// No JavaScript: show the still instead of the loader. (A <noscript> inside
+// the template would break hydration; a <noscript> style in the head doesn't.)
+useHead({
+  noscript: [
+    { innerHTML: "<style>.sawmill-nojs{display:block!important}.sawmill-loader{display:none!important}</style>" },
+  ],
+});
+import type { SiteData, TimelineEntry } from "~/types/site";
 
 const { data: siteData } = await useSite();
+// The career timeline from the CMS (falls back to app/data/timeline.ts):
+// the sawmill and the list below both render it, one step per entry.
+const { data: timelineData } = await useTimeline();
+const timeline = computed<TimelineEntry[]>(() => timelineData.value ?? []);
 const site = computed<SiteData>(
   () => siteData.value ?? (fallbackSite as SiteData)
 );
@@ -167,6 +148,35 @@ useHead(() => ({
 </script>
 
 <style scoped>
+.home-page {
+  padding: 0 44px 64px;
+}
+/* Desktop: nothing follows the hero (the timeline list is visually hidden
+   and the row is inside the hero), so no bottom padding: the page ends
+   exactly at the end of the hero's scroll. */
+@media (min-width: 768px) {
+  .home-page {
+    padding-bottom: 0;
+  }
+}
+.hero-meta-overlay {
+  position: absolute;
+  left: 44px;
+  right: 44px;
+  bottom: 60px; /* above the fixed copyright line (bottom: 30px) */
+  z-index: 1;
+}
+.hero-meta-below {
+  display: none;
+}
+@media (max-width: 767px) {
+  .hero-meta-overlay {
+    display: none;
+  }
+  .hero-meta-below {
+    display: grid;
+  }
+}
 /* Scroll distance = one viewport per step; the sticky viewport adds one more.
    svh keeps the height stable while mobile browser bars show and hide. */
 .sawmill-scroll {
@@ -205,6 +215,9 @@ useHead(() => ({
 }
 .sawmill-fallback {
   object-fit: contain;
+}
+.sawmill-nojs {
+  display: none;
 }
 .sawmill-fade-enter-active,
 .sawmill-fade-leave-active {

@@ -46,7 +46,7 @@
           <aside ref="cardEl" class="plank-card">
             <p v-if="cardMeta" class="plank-card__meta">{{ cardMeta }}</p>
             <p class="plank-card__title">{{ cardEntry.title }}</p>
-            <p class="plank-card__detail">{{ cardEntry.detail }}</p>
+            <p class="plank-card__detail">{{ cardEntry.text }}</p>
           </aside>
         </div>
       </Transition>
@@ -68,13 +68,14 @@ import SawmillCamera from "./SawmillCamera.vue";
 import SawmillLights from "./SawmillLights.vue";
 import SawmillEffects from "./SawmillEffects.vue";
 import SawmillScene from "./SawmillScene.vue";
-import { COLORS, RENDERER, STEP_COUNT } from "~/sawmill/scene-config";
-import { NEXT_ENTRY, TIMELINE } from "~/sawmill/timeline";
+import { COLORS, RENDERER } from "~/sawmill/scene-config";
+import type { TimelineEntry } from "~/types/site";
 import { disposeSceneGeometries } from "~/sawmill/geometries";
 import { disposeSceneMaterials } from "~/sawmill/materials";
 import {
   CAPTION_ANCHOR,
   MOTION_STATE,
+  SAWMILL_ENTRIES,
   SAWMILL_UI,
   clamp01,
   createMotionState,
@@ -120,6 +121,21 @@ const gl = {
   dpr: RENDERER.dpr,
 };
 
+// The career timeline from the CMS (useTimeline), oldest first as stored.
+// The sawmill works newest first: entry 0 is the slice under the saw.
+const props = defineProps<{ timeline: readonly TimelineEntry[] }>();
+const entries = computed(() => [...props.timeline].reverse());
+
+/** Caption for the blank last slice, once every entry is stacked. */
+const NEXT_ENTRY: TimelineEntry = {
+  id: "next",
+  year: "",
+  title: "What's next",
+  org: "",
+  text: "The last slice of the log is still blank.",
+  dot: "",
+};
+
 // Per-frame state (plain object) and plank interaction state (reactive,
 // changes only on pointer events).
 const state = createMotionState();
@@ -133,6 +149,13 @@ const ui = reactive<SawmillUi>({
 });
 provide(MOTION_STATE, state);
 provide(SAWMILL_UI, ui);
+provide(SAWMILL_ENTRIES, entries);
+// One scroll step per entry; follows the CMS data if it changes.
+watch(
+  () => entries.value.length,
+  (n) => (state.steps = n),
+  { immediate: true },
+);
 
 // Tell the page when the first frame is on screen (it swaps out the loader).
 const emit = defineEmits<{ ready: [] }>();
@@ -174,9 +197,9 @@ watch(cardEl, (el, old) => {
 // With reduced motion (everything already stacked) only hover/tap shows it.
 const cardEntry = computed(() => {
   const i = ui.selected ?? ui.hovered;
-  if (i !== null) return TIMELINE[i] ?? null;
+  if (i !== null) return entries.value[i] ?? null;
   if (reducedMotion.value) return null;
-  return TIMELINE[ui.current] ?? NEXT_ENTRY;
+  return entries.value[ui.current] ?? NEXT_ENTRY;
 });
 const cardMeta = computed(() =>
   cardEntry.value ? [cardEntry.value.year, cardEntry.value.org].filter(Boolean).join(" · ") : "",
@@ -208,7 +231,7 @@ function readScroll() {
   if (!section) return;
   const rect = section.getBoundingClientRect();
   const scrollable = rect.height - window.innerHeight;
-  state.target = scrollable > 0 ? clamp01(-rect.top / scrollable) * STEP_COUNT : 0;
+  state.target = scrollable > 0 ? clamp01(-rect.top / scrollable) * state.steps : 0;
 }
 
 // Pause rendering while the hero is scrolled out of view.
@@ -222,6 +245,8 @@ function readReduced() {
 }
 
 onMounted(() => {
+  // The dev lab has no motion driver to flag the first frame; show it at once.
+  if (labSpec) ui.ready = true;
   section = root.value!.closest<HTMLElement>("[data-sawmill-scroll]");
   reducedQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
   readReduced();

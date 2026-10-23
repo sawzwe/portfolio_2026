@@ -16,7 +16,6 @@
 //   - With the camera at azimuth 45°, +X points to screen bottom-right and
 //     +Z to screen bottom-left, matching master.png.
 
-import { LOG_SEGMENT_COUNT } from "./timeline";
 
 type Vec3 = [number, number, number];
 
@@ -55,6 +54,15 @@ export const COLORS = {
   shoe: "#1C1C1C",
   // Plank label text, printed into the recess.
   label: "#4A4A48",
+  // AI robot workers (references/ai/).
+  robotBody: "#D9DBDD",
+  robotJoint: "#6F7378",
+  robotVisor: "#2B2D2C",
+  robotBadge: "#E6E8E9",
+  robotGreen: "#A9BBA3",
+  robotBlue: "#B7C9DB",
+  robotIndigo: "#B5BCE0",
+  robotSand: "#E2CDA8",
 } as const;
 
 export type ColorName = keyof typeof COLORS;
@@ -124,10 +132,11 @@ export const CAMERA = {
   // Fraction of the canvas left free on each side when fitting the scene.
   // master.png has ~5% above the gantry; the hero leaves 12% so the page
   // heading, which overlays the top-left corner, clears the gantry and logs.
-  fitMargin: { top: 0.12, bottom: 0.03, left: 0.05, right: 0.05 },
+  // The bottom 15% holds the Base / Focus / Index row on desktop.
+  fitMargin: { top: 0.12, bottom: 0.15, left: 0.05, right: 0.05 },
   // Overall size of the scene inside that area: 1 fills it, smaller values
   // shrink the whole sawmill around the same centre.
-  sceneScale: 0.85,
+  sceneScale: 0.92,
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -193,19 +202,23 @@ export const PLANK = {
 export const PLANK_SIZE: Vec3 = [PLANK.width, PLANK.thickness, PLANK.length];
 
 /**
- * The log is a sliced block: one slice per timeline entry plus the blank
+ * The log is a sliced block. On the main conveyor it has one slice per
+ * timeline entry (from the CMS, so the count can change) plus the blank
  * "next" one. Each slice is a plank standing on edge across the conveyor
  * (length along X, width up, thickness along Z), so the piece the saw cuts off
  * is the plank itself: it tips over flat and goes to the stack.
  */
 export const LOG = {
-  slices: LOG_SEGMENT_COUNT,
   seamGap: 2,
+  // The waiting log on the second conveyor is decoration ("what's next"):
+  // a fixed number of blank slices, whatever the timeline length.
+  waitingSlices: 8,
 } as const;
 
 /** Distance from one slice to the next along the log (Z). */
 export const LOG_PITCH = PLANK.thickness + LOG.seamGap;
-export const LOG_LENGTH = LOG.slices * PLANK.thickness + (LOG.slices - 1) * LOG.seamGap;
+/** Length of a log with `slices` slices. */
+export const logLength = (slices: number) => slices * PLANK.thickness + (slices - 1) * LOG.seamGap;
 /** The log's height and width come from a plank on edge. */
 export const LOG_HEIGHT = PLANK.width;
 export const LOG_WIDTH = PLANK.length;
@@ -452,6 +465,11 @@ export interface Pose {
 }
 
 export const POSES = {
+  // robot-pose-1-switch.png: right hand forward and down on the switch lever.
+  switch: {
+    torsoLean: deg(4), shoulderL: deg(4), shoulderR: deg(42), armSpread: deg(10),
+    hipL: 0, hipR: 0, kneeL: 0, kneeR: 0, pelvisDrop: 0,
+  },
   // pose-1-standing.png
   standing: {
     torsoLean: 0, shoulderL: 0, shoulderR: 0, armSpread: WORKER.arm.restSpread,
@@ -484,27 +502,88 @@ export const POSES = {
 
 export type PoseName = keyof typeof POSES;
 
+// ---------------------------------------------------------------------------
+// AI robot workers (references/ai/robot-*.png)
+// Floating: no legs, the torso hovers above the floor with a soft glow
+// underneath. Heights from the floor: hover 26 + torso 60 + neck 6 + head 48.
+// ---------------------------------------------------------------------------
+
+export const ROBOT = {
+  hover: 26, // gap between the floor and the bottom of the torso
+  bob: { amplitude: 3, speed: 2.2 }, // idle float, world units / rad/s
+  radius: 6,
+  // The whole torso is the accent colour so each robot reads from any angle
+  // (the scene camera mostly sees their sides and backs); a thin grey trim
+  // down each side keeps the reference's two-tone look.
+  torso: { size: [50, 60, 32] as Vec3, radius: 9, trim: { width: 3, depth: 8 } },
+  chestBadge: { radius: 13, depth: 2, y: 0.58 }, // y: fraction of torso height
+  neck: { size: [18, 6, 18] as Vec3 },
+  head: { size: [54, 48, 48] as Vec3, radius: 11 },
+  visor: { size: [38, 11, 2] as Vec3, y: 0.5 }, // y: fraction of head height
+  headBadge: { size: [12, 10, 2] as Vec3, y: 0.8 },
+  earModule: { size: [4, 13, 13] as Vec3, y: 0.55 },
+  arm: {
+    sleeve: [15, 46, 15] as Vec3,
+    hand: [13, 11, 13] as Vec3,
+    restSpread: deg(12),
+    shoulderInset: 2,
+  },
+  // Thruster plate under the torso and the light pool it casts on the floor.
+  glow: { color: "#CFEAF5", plateRadius: 14, floorRadius: 34, floorOpacity: 0.55 },
+} as const;
+
+export type RobotAccent = "robotGreen" | "robotBlue" | "robotIndigo" | "robotSand";
+
+/** Logo shown on a robot's head and chest badges: an image in public/ (SVG or
+ *  PNG, transparent background), or null for a blank badge. */
+export interface RobotBadge {
+  model: string;
+  logo: string | null;
+}
+
 export interface WorkerPlacement {
   id: string;
   pose: PoseName;
-  outfit: Outfit;
   position: Vec3;
   rotationY: number;
+  /** The human (you, at the desk) or one of the AI robots. */
+  kind: "human" | "robot";
+  outfit?: Outfit; // human only
+  accent?: RobotAccent; // robot only
+  badge?: RobotBadge; // robot only
 }
 
-// Positions read off master.png. rotationY 0 faces +Z (screen bottom-left);
-// -90° faces -X (screen top-left).
+// Positions read off master.png / master-ai.png. rotationY 0 faces +Z
+// (screen bottom-left); -90° faces -X (screen top-left).
+// Logos: put the files in public/sawmill/logos/ and set `logo`, e.g.
+// "/sawmill/logos/openai.svg". Until then the badges are blank.
 export const WORKERS: readonly WorkerPlacement[] = [
-  // Standing just right of the switch box at the start of the main conveyor.
-  { id: "operator", pose: "standing", outfit: "green", position: [128, 0, 300], rotationY: deg(-15) },
+  // At the switch box at the start of the main conveyor, facing it.
+  {
+    id: "operator", kind: "robot", pose: "switch", accent: "robotGreen",
+    badge: { model: "GPT", logo: null },
+    position: [128, 0, 300], rotationY: deg(-90),
+  },
   // Pushing the log into the saw, on the +X side of the main conveyor.
-  { id: "pusher", pose: "pushing", outfit: "blue", position: [96, 0, -60], rotationY: deg(-95) },
+  {
+    id: "pusher", kind: "robot", pose: "pushing", accent: "robotBlue",
+    badge: { model: "Gemini", logo: null },
+    position: [96, 0, -60], rotationY: deg(-95),
+  },
   // At the control panel, facing its low front edge.
-  { id: "panel", pose: "controlPanel", outfit: "cream", position: [225, 0, -215], rotationY: deg(-90) },
-  // Carrying two planks from the saw towards the stack.
-  { id: "carrier", pose: "carrying", outfit: "green", position: [360, 0, -30], rotationY: deg(-20) },
-  // Seated at the desk, facing +Z.
-  { id: "desk", pose: "seated", outfit: "cream", position: STOOL.position, rotationY: deg(0) },
+  {
+    id: "panel", kind: "robot", pose: "controlPanel", accent: "robotIndigo",
+    badge: { model: "DeepSeek", logo: null },
+    position: [225, 0, -215], rotationY: deg(-90),
+  },
+  // Carrying a plank from the saw towards the stack.
+  {
+    id: "carrier", kind: "robot", pose: "carrying", accent: "robotSand",
+    badge: { model: "Fourth model", logo: null },
+    position: [360, 0, -30], rotationY: deg(-20),
+  },
+  // You, seated at the desk facing +Z, supervising.
+  { id: "desk", kind: "human", pose: "seated", outfit: "cream", position: STOOL.position, rotationY: deg(0) },
 ];
 
 /**
@@ -526,7 +605,8 @@ export const CARRY = {
 // Motion (storyboard-1..4.png), driven by page scroll.
 //
 // The hero section is one viewport tall per timeline entry, with the canvas
-// sticky inside it. Scroll progress P runs from 0 to TIMELINE.length; step k
+// sticky inside it. Scroll progress P runs from 0 to the number of timeline
+// entries (from the CMS, newest first); step k
 // (P in [k, k+1]) cuts log segment k and stacks its plank:
 //   1 cut      the blade drops through segment k and rises again
 //   2 lift     the segment becomes a plank and rises off the log
@@ -619,5 +699,3 @@ export const MOTION = {
   },
 } as const;
 
-/** Total scroll steps: one per timeline entry. */
-export const STEP_COUNT = LOG_SEGMENT_COUNT - 1;

@@ -26,12 +26,16 @@ export default defineNuxtConfig({
     cssPath: "~/assets/css/main.css",
   },
   supabase: {
+    // Row types are hand-written in app/types/database.ts, not generated, so
+    // skip the module's generated-types lookup (and its startup warning).
+    types: false,
     // Only the admin area requires auth. The public portfolio stays open.
     redirectOptions: {
       login: "/admin/login",
       callback: "/admin/confirm",
       include: ["/admin(/*)?"],
-      exclude: ["/admin/login"],
+      // Signed-out pages inside /admin: sign in, and the password reset flow.
+      exclude: ["/admin/login", "/admin/forgot", "/admin/reset"],
       cookieRedirect: false,
     },
   },

@@ -86,7 +86,7 @@ if (props.driven) {
   useLoop().onBeforeRender(() => {
     const mesh = rollerParts.value?.mesh;
     if (!mesh) return;
-    const angle = (logOffset(state.progress) * LOG_PITCH) / C.rollers.radius;
+    const angle = (logOffset(state.progress, state.steps) * LOG_PITCH) / C.rollers.radius;
     if (Math.abs(angle - lastAngle) < 1e-4) return;
     lastAngle = angle;
     spin.setFromAxisAngle(up, angle);

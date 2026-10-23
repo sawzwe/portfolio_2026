@@ -17,3 +17,6 @@ Visual spec for the sawmill hero scene, built with TresJS (`@tresjs/core` + `@tr
 - `master.png` shows **two conveyors**: one feeding the saw and a second one behind it holding a waiting log. The second log can be the "what's next" part of the timeline.
 - The images contain no text. Plank titles come from the timeline data and are rendered in 3D. Timeline and scene config live in the repo's shared-code location (`app/sawmill/`), not `lib/`.
 - `worker-turnaround.png` has a grey studio background. The scene background stays #F2F2F0.
+
+## AI workers
+The workers are being redesigned as floating AI robots. Their references are in `ai/` (see `ai/README.md`); they replace the human worker and pose images here.

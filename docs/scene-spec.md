@@ -4,7 +4,7 @@ The sawmill hero is a TresJS scene on the home page. Each plank is one entry of 
 
 - **Visual spec:** `references/` (repo root, not deployed). `master.png` is the source of truth. Every other image refines one part of it, and where they disagree, master wins.
 - **Numbers:** every dimension, position, colour, pose and timing lives in `app/sawmill/scene-config.ts`. This document explains where those numbers come from.
-- **Content:** plank labels come from `app/sawmill/timeline.ts`.
+- **Content:** the CMS `timeline` table (Supabase, edited in /admin) is the single source for the planks, their cards, the home timeline list and the About page. `app/data/timeline.ts` is only its seed and offline fallback.
 
 Units: Y is up and the platform top is at Y 0. One plank is 200 × 40 × 80 (length × thickness × width) with a corner radius of 4. Logs travel along −Z into the saw.
 
@@ -262,7 +262,7 @@ Status (2026-10-23): decisions 1–6 accepted as written. Items 7 and 8 are stil
    - PS Park 2023 (here 2024)
    - "Left the PM seat. Open to …" for 2026 (here "Technical PM · now")
 
-   The home page role also reads "Technical Product Manager". One of the two needs updating before launch. The sawmill reads only `app/sawmill/timeline.ts`.
+   The home page role also reads "Technical Product Manager". One of the two needs updating before launch. Resolved: one timeline in the CMS now feeds both pages.
 8. **Background:** the canvas is `#F2F2F0` but the page body is `#fcfcfb`, so the hero shows as a grey rectangle. Either the page goes to `#F2F2F0` on the home route, or the canvas becomes transparent over the page colour.
 9. **Canvas aspect:** master is 1.79:1. The hero container on a 1440 × 900 screen is 1120 × 468 (2.4:1), so the camera fit has more width than master; fit is by height there. Phase 2 checks both aspects.
 
@@ -296,3 +296,16 @@ What changed from the plan above while building:
   - The main conveyor's rollers turn as the log advances.
   - Dust drifts in the air, and a light haze fades the back of the scene for depth.
   - All of it is off with reduced motion.
+
+### AI workers (references/ai/)
+
+- **The four jobs are done by floating AI robots** (`Robot.vue`, `ROBOT` in `scene-config.ts`): green at the switch box, blue pushing, indigo at the control panel, sand carrying. You stay human, seated at the desk.
+- **Body:** no legs; the robots hover over a soft glow and bob gently. The head has a visor, a forehead badge and side modules; the whole torso is the accent colour (so it reads from the scene camera's angle) with a thin grey side trim and a round chest badge.
+- **Logos:** each robot has `badge: { model, logo }` in `WORKERS`. Set `logo` to an image in `public/sawmill/logos/` (SVG or PNG, transparent background) and it appears on the head and chest badges; `null` keeps them blank.
+- **Lab:** `?sawmill-lab=robot:<pose>` and `?sawmill-lab=robotturn:<view>` render one robot framed like its reference.
+
+### One timeline (CMS)
+
+- The hard-coded `app/sawmill/timeline.ts` is gone. The home page fetches the CMS timeline once (`useTimeline`) and passes it to the sawmill canvas and the timeline list; the About page reads the same data.
+- Fields: `year` (printed on the plank, keep it short), `title`, `org` (new, migration `0002_timeline_org.sql`), `text` (the card's detail line), `dot`, `sort_order` (oldest first). The sawmill reverses it: the newest entry is the slice under the saw.
+- The number of entries is not fixed: the hero is one viewport of scroll per entry, the log has one slice per entry plus the blank "next" slice, and the stack grows a layer every three planks.

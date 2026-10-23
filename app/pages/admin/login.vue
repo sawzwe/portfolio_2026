@@ -49,6 +49,14 @@
             outline: none;
           "
         />
+        <div class="text-right" style="margin-top: -6px">
+          <NuxtLink
+            :to="{ path: '/admin/forgot', query: email ? { email } : {} }"
+            class="text-[12px] tracking-[0.08em]"
+            style="color: #6b6b67"
+            >Forgot password?</NuxtLink
+          >
+        </div>
         <button
           type="submit"
           :disabled="loading"

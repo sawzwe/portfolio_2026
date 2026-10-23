@@ -1,36 +1,56 @@
 <!-- components/sawmill/Workers.vue -->
 <!--
-  The five workers placed as in master.png (WORKERS in scene-config). The
+  The workers placed as in master-ai.png (WORKERS in scene-config): four
+  floating AI robots doing the work and the human (you) at the desk. The
   carrier holds CARRY.planks blank planks across its body.
 
   Motion, per frame: every head turns towards the cursor (clamped to
   MOTION.heads.maxYaw) or glances around when there is none, the pusher leans
-  into each cut, and everyone has a little idle life (MOTION.idle): breathing,
-  a weight shift, the panel worker tapping buttons, the desk worker typing.
+  into each cut, and everyone has a little idle life (MOTION.idle): robots
+  bob as they hover (ROBOT.bob), the human breathes, the panel robot taps
+  buttons, the desk worker types.
 -->
 <template>
-  <Worker
-    v-for="(w, i) in WORKERS"
-    :key="w.id"
-    :ref="(el: any) => (workers[i] = el)"
-    :color="w.outfit"
-    :pose="w.pose"
-    :position="w.position"
-    :rotation="w.rotationY"
-  >
-    <CarriedPlanks v-if="w.pose === 'carrying'" />
-  </Worker>
+  <template v-for="(w, i) in WORKERS" :key="w.id">
+    <Robot
+      v-if="w.kind === 'robot'"
+      :ref="(el: any) => (workers[i] = el)"
+      :accent="w.accent!"
+      :badge="w.badge"
+      :pose="w.pose"
+      :position="w.position"
+      :rotation="w.rotationY"
+    >
+      <CarriedPlanks v-if="w.pose === 'carrying'" />
+    </Robot>
+    <Worker
+      v-else
+      :ref="(el: any) => (workers[i] = el)"
+      :color="w.outfit ?? 'cream'"
+      :pose="w.pose"
+      :position="w.position"
+      :rotation="w.rotationY"
+    >
+      <CarriedPlanks v-if="w.pose === 'carrying'" />
+    </Worker>
+  </template>
 </template>
 
 <script setup lang="ts">
 import { Plane, Raycaster, Vector2, Vector3, type Object3D } from "three";
 import { easing } from "maath";
 import Worker from "./Worker.vue";
+import Robot from "./Robot.vue";
 import CarriedPlanks from "./CarriedPlanks.vue";
-import { MOTION, POSES, WORKERS } from "~/sawmill/scene-config";
+import { MOTION, POSES, ROBOT, WORKERS } from "~/sawmill/scene-config";
 import { MOTION_STATE, bladeDrop } from "~/sawmill/motion";
 
-type WorkerHandle = { head?: Object3D; torso?: Object3D; arms?: (Object3D | null)[] } | null;
+type WorkerHandle = {
+  head?: Object3D;
+  torso?: Object3D;
+  body?: Object3D; // robots only: the hovering group
+  arms?: (Object3D | null)[];
+} | null;
 
 const state = inject(MOTION_STATE)!;
 const { camera } = useTres();
@@ -56,7 +76,9 @@ function idle(i: number, w: (typeof WORKERS)[number], t: number) {
   const handle = workers[i];
   const torso = handle?.torso;
   const phase = i * 1.7;
-  if (torso) {
+  if (handle?.body) {
+    handle.body.position.y = ROBOT.hover + Math.sin(t * ROBOT.bob.speed + phase) * ROBOT.bob.amplitude;
+  } else if (torso) {
     torso.position.y = Math.sin(t * I.breathe.speed + phase) * I.breathe.amplitude;
     if (w.pose === "standing") torso.rotation.z = Math.sin(t * I.sway.speed + phase) * I.sway.amplitude;
   }
@@ -67,6 +89,9 @@ function idle(i: number, w: (typeof WORKERS)[number], t: number) {
     // Alternate hands pressing down on the panel.
     left.rotation.x = -(pose.shoulderL + Math.max(0, Math.sin(t * I.tap.speed)) * I.tap.amplitude);
     right.rotation.x = -(pose.shoulderR + Math.max(0, Math.sin(t * I.tap.speed + Math.PI)) * I.tap.amplitude);
+  } else if (w.pose === "switch") {
+    // Slow pull on the lever now and then.
+    right.rotation.x = -(pose.shoulderR + Math.max(0, Math.sin(t * I.tap.speed * 0.35 + phase)) ** 3 * I.tap.amplitude * 1.6);
   } else if (w.pose === "seated") {
     left.rotation.x = -(pose.shoulderL + Math.sin(t * I.typing.speed) * I.typing.amplitude);
     right.rotation.x = -(pose.shoulderR + Math.sin(t * I.typing.speed + 2) * I.typing.amplitude);
@@ -106,7 +131,7 @@ useLoop().onBeforeRender(({ delta }) => {
 
   const torso = workers[pusherIndex]?.torso;
   if (torso) {
-    const lean = state.reduced ? 0 : MOTION.pusher.cutLean * bladeDrop(state.progress);
+    const lean = state.reduced ? 0 : MOTION.pusher.cutLean * bladeDrop(state.progress, state.steps);
     torso.rotation.x = POSES.pushing.torsoLean + lean;
   }
 });

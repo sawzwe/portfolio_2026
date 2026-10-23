@@ -7,11 +7,14 @@
 // Vue re-render. Frame callbacks mutate three.js objects directly and reuse
 // preallocated vectors, so the render loop allocates nothing.
 
-import type { InjectionKey } from "vue";
-import { MOTION, STEP_COUNT } from "./scene-config";
+import type { ComputedRef, InjectionKey } from "vue";
+import type { TimelineEntry } from "~/types/site";
+import { MOTION } from "./scene-config";
 
 export interface MotionState {
-  /** Scroll target, 0..STEP_COUNT, set from the page's scroll position. */
+  /** Scroll steps: one per timeline entry (set from the CMS data). */
+  steps: number;
+  /** Scroll target, 0..steps, set from the page's scroll position. */
   target: number;
   /** Smoothed progress actually shown, damped towards `target`. */
   progress: number;
@@ -23,6 +26,7 @@ export interface MotionState {
 
 export function createMotionState(): MotionState {
   return {
+    steps: 0,
     target: 0,
     progress: 0,
     reduced: false,
@@ -31,6 +35,12 @@ export function createMotionState(): MotionState {
 }
 
 export const MOTION_STATE: InjectionKey<MotionState> = Symbol("sawmill-motion");
+
+/**
+ * The timeline as the sawmill uses it: CMS entries newest first, so index 0
+ * is the slice under the saw at the top of the page.
+ */
+export const SAWMILL_ENTRIES: InjectionKey<ComputedRef<readonly TimelineEntry[]>> = Symbol("sawmill-entries");
 
 export const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
 
@@ -46,20 +56,21 @@ export const easeOut = (t: number) => 1 - (1 - t) * (1 - t);
 // These run every frame, so they return numbers or reuse one output object
 // instead of allocating.
 
-/** Current step index at progress P (0..STEP_COUNT-1). */
-function stepIndex(progress: number) {
-  const p = Math.min(Math.max(progress, 0), STEP_COUNT);
-  return Math.min(Math.floor(p), STEP_COUNT - 1);
+/** Current step index at progress P (0..steps-1). */
+function stepIndex(progress: number, steps: number) {
+  const p = Math.min(Math.max(progress, 0), steps);
+  return Math.min(Math.floor(p), steps - 1);
 }
 
 /**
  * How many segments the log has advanced at progress P: one per completed
- * step, eased in during each step's advance window. At P = STEP_COUNT the
+ * step, eased in during each step's advance window. At P = steps the
  * blank "next" segment sits under the blade.
  */
-export function logOffset(progress: number) {
-  const step = stepIndex(progress);
-  const t = Math.min(Math.max(progress, 0), STEP_COUNT) - step;
+export function logOffset(progress: number, steps: number) {
+  if (steps <= 0) return 0;
+  const step = stepIndex(progress, steps);
+  const t = Math.min(Math.max(progress, 0), steps) - step;
   return step + easeInOut(windowed(t, MOTION.phases.advance));
 }
 
@@ -71,11 +82,11 @@ const headOut = { lower: 0, slide: 0 };
  * cut the head lowers, slides across the log, and rises; it then slides back
  * raised. Returns a shared object: read it before the next call.
  */
-export function sawHead(progress: number): Readonly<typeof headOut> {
+export function sawHead(progress: number, steps: number): Readonly<typeof headOut> {
   headOut.lower = 0;
   headOut.slide = 0;
-  if (progress >= STEP_COUNT || progress <= 0) return headOut;
-  const t = progress - stepIndex(progress);
+  if (progress >= steps || progress <= 0) return headOut;
+  const t = progress - stepIndex(progress, steps);
   const { lowerEnd, slideEnd } = MOTION.blade;
   const c = windowed(t, MOTION.phases.cut);
   if (t <= MOTION.phases.cut[1]) {
@@ -95,8 +106,8 @@ export function sawHead(progress: number): Readonly<typeof headOut> {
 }
 
 /** How far down the blade is at progress P (0 raised, 1 cutting). */
-export function bladeDrop(progress: number) {
-  return sawHead(progress).lower;
+export function bladeDrop(progress: number, steps: number) {
+  return sawHead(progress, steps).lower;
 }
 
 export type PlankPhase = "inLog" | "lift" | "travel" | "land" | "stacked";

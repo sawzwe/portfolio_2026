@@ -27,6 +27,7 @@ export interface TimelineRow {
   id: string;
   year: string;
   title: string;
+  org: string;
   text: string;
   dot: string;
   sort_order: number;
@@ -74,6 +75,7 @@ export function rowToTimeline(r: TimelineRow): TimelineEntry {
     id: r.id,
     year: r.year,
     title: r.title,
+    org: r.org ?? "",
     text: r.text,
     dot: r.dot,
     sortOrder: r.sort_order,

@@ -51,7 +51,7 @@ let clock = 0;
 useLoop().onBeforeRender(({ delta }) => {
   const m = mesh.value;
   if (!m) return;
-  const head = sawHead(state.progress);
+  const head = sawHead(state.progress, state.steps);
   // Only while the blade is in the wood: down and sliding.
   const strength = state.reduced ? 0 : head.lower * (head.slide > 0 && head.slide < 1 ? 1 : 0.3);
   origin.x = CONVEYORS.main.position[0] - BLADE.traverse + 2 * BLADE.traverse * head.slide;

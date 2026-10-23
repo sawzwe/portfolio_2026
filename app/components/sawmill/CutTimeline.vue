@@ -15,8 +15,8 @@
 <template>
   <TresGroup>
     <TresGroup
-      v-for="(entry, i) in entries"
-      :key="entry?.id ?? 'next'"
+      v-for="(entry, i) in slices"
+      :key="entry ? entryKey(entry, i) : 'next'"
       :ref="(el: any) => (plankObjects[i] = el)"
       @pointerenter="entry && (ui.hovered = i)"
       @pointerleave="ui.hovered === i && (ui.hovered = null)"
@@ -39,6 +39,7 @@
 
 <script setup lang="ts">
 import { Matrix4, Quaternion, Vector3, type Object3D } from "three";
+import type { TimelineEntry } from "~/types/site";
 import { easing } from "maath";
 import Plank from "./Plank.vue";
 import { roundedBox } from "~/sawmill/geometries";
@@ -53,10 +54,10 @@ import {
   PLANK,
   STACK,
 } from "~/sawmill/scene-config";
-import { TIMELINE } from "~/sawmill/timeline";
 import {
   CAPTION_ANCHOR,
   MOTION_STATE,
+  SAWMILL_ENTRIES,
   SAWMILL_UI,
   easeIn,
   easeInOut,
@@ -68,10 +69,13 @@ import {
 const state = inject(MOTION_STATE)!;
 const ui = inject(SAWMILL_UI)!;
 const caption = inject(CAPTION_ANCHOR)!;
+// Timeline entries from the CMS, newest first (provided by SawmillCanvas).
+const entries = inject(SAWMILL_ENTRIES)!;
 const { camera, sizes } = useTres();
 
 // One plank per entry, then the blank "next" slice that never leaves the log.
-const entries = [...TIMELINE, null];
+const slices = computed<(TimelineEntry | null)[]>(() => [...entries.value, null]);
+const entryKey = (e: TimelineEntry, i: number) => e.id ?? `${i}-${e.year}-${e.title}`;
 const plankObjects: (Object3D | null)[] = [];
 const visualObjects: (Object3D | null)[] = [];
 const hitGeometry = roundedBox([PLANK.width, PLANK.thickness + MOTION.plank.hoverLift, PLANK.length], 0.5, 1);
@@ -93,8 +97,9 @@ const ON_EDGE = new Quaternion().setFromRotationMatrix(
 );
 const FLAT = new Quaternion();
 
-// Stack slot i: column i % columns, layer floor(i / columns).
-const slots = TIMELINE.map((_, i) => {
+// Stack slot i: column i % columns, layer floor(i / columns). Any number of
+// entries fits: the stack just grows taller.
+const slots = computed(() => entries.value.map((_, i) => {
   const column = i % STACK.columns;
   const layer = Math.floor(i / STACK.columns);
   return {
@@ -102,10 +107,11 @@ const slots = TIMELINE.map((_, i) => {
     y: STACK.position[1] + PLANK.thickness / 2 + layer * PLANK.thickness,
     z: STACK.position[2],
   };
-});
+}));
 
-// Per-plank hover lift, damped each frame (plain numbers, no allocation).
-const hoverLift = entries.map(() => ({ y: 0 }));
+// Per-plank hover lift, damped each frame (plain numbers, no allocation in
+// the loop; the array is rebuilt only when the entries change).
+const hoverLift = computed(() => slices.value.map(() => ({ y: 0 })));
 
 // Caption placement: project the point above the caption's plank to canvas
 // pixels and move the anchor there. Last written values avoid redundant DOM
@@ -127,9 +133,9 @@ function placeCaption() {
 
   // Pin point: the middle of the plank's top face (taller while it stands on
   // edge in the log), lifted with the plank when hovered.
-  const onEdge = index >= TIMELINE.length || plankPhase(state.progress, index).phase === "inLog";
+  const onEdge = index >= entries.value.length || plankPhase(state.progress, index).phase === "inLog";
   captionPoint.copy(plank.position);
-  captionPoint.y += (onEdge ? LOG_HEIGHT : PLANK.thickness) / 2 + (hoverLift[index]?.y ?? 0);
+  captionPoint.y += (onEdge ? LOG_HEIGHT : PLANK.thickness) / 2 + (hoverLift.value[index]?.y ?? 0);
   captionPoint.project(cam);
   const width = sizes.width.value;
   const height = sizes.height.value;
@@ -167,14 +173,18 @@ function sliceZ(j: number, offset: number) {
 
 useLoop().onBeforeRender(({ delta }) => {
   const P = state.progress;
-  const offset = logOffset(P);
+  const offset = logOffset(P, state.steps);
+  const count = entries.value.length;
+  const slotList = slots.value;
+  const lifts = hoverLift.value;
 
-  for (let i = 0; i < plankObjects.length; i++) {
+  // Every entry plus the blank last slice.
+  for (let i = 0; i <= count; i++) {
     const plank = plankObjects[i];
     if (!plank) continue;
 
     // The blank last slice, and every slice before its cut, sits in the log.
-    const life = i < TIMELINE.length ? plankPhase(P, i) : null;
+    const life = i < count ? plankPhase(P, i) : null;
     const visual = visualObjects[i];
     if (!life || life.phase === "inLog") {
       if (visual) visual.position.y = 0;
@@ -184,8 +194,8 @@ useLoop().onBeforeRender(({ delta }) => {
     }
     const { phase, u } = life;
 
-    const slot = slots[i]!;
-    const lift = hoverLift[i]!;
+    const slot = slotList[i]!;
+    const lift = lifts[i]!;
     const lifted = ui.hovered === i || ui.selected === i;
     easing.damp(lift, "y", lifted ? MOTION.plank.hoverLift : 0, MOTION.plank.hoverSmoothTime, delta);
     // Only the visible part lifts; the group (and its hit box) stays put.
